@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic RAG — Enterprise Pipeline</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon"></div>
+            <span>Agentic RAG</span>
+        </div>
+        <nav class="sidebar-nav" id="sidebar-nav">
+            <div class="nav-item active" data-panel="panel-upload">
+                <span class="nav-num">1</span><span>Document Upload</span>
+            </div>
+            <div class="nav-item locked" data-panel="panel-ingest">
+                <span class="nav-num">2</span><span>Ingestion &amp; Outline</span>
+            </div>
+            <div class="nav-item locked" data-panel="panel-chunk">
+                <span class="nav-num">3</span><span>Chunking &amp; Validation</span>
+            </div>
+            <div class="nav-item locked" data-panel="panel-retrieve">
+                <span class="nav-num">4</span><span>Hybrid Search</span>
+            </div>
+        </nav>
+        <div class="sidebar-status">
+            <span class="dot-green"></span><span id="status-text">System Online</span>
+        </div>
+    </aside>
+
+    <!-- Content -->
+    <div class="content-area">
+        <!-- Topbar -->
+        <header class="topbar">
+            <h1 id="page-title">Document Upload</h1>
+            <div id="pipeline-badge" class="badge badge-idle">IDLE</div>
+        </header>
+
+        <!-- Store warning: shown when in-memory store is empty after a restart -->
+        <div id="store-warning" class="store-warning hidden"></div>
+
+        <div class="content-scroll">
+
+            <!-- ═══════════════════════════════ Panel 1: Upload ═══ -->
+            <div class="panel active" id="panel-upload">
+                <div class="card">
+                    <div class="card-hd">
+                        <h3>Ingest Document</h3>
+                        <p>Upload a Markdown <code>.md</code> or plain-text <code>.txt</code> file to begin the pipeline.</p>
+                    </div>
+                    <div class="card-bd">
+                        <div class="drop-zone" id="drop-zone">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <p class="drop-title">Click or drag a file here</p>
+                            <p class="drop-sub">PDF, Markdown or plain-text files — PDFs are parsed by font-size heading detection</p>
+                            <input type="file" id="file-input" accept=".md,.txt,.pdf">
+                        </div>
+
+                        <div id="file-preview-area" class="file-preview-area hidden">
+                            <div class="file-meta">
+                                <span id="preview-name">—</span>
+                                <span id="preview-size" class="text-dim">—</span>
+                            </div>
+                            <textarea id="doc-textarea" spellcheck="false"></textarea>
+                        </div>
+                    </div>
+                    <div class="card-ft">
+                        <button class="btn btn-primary" id="btn-ingest" disabled>
+                            <span id="btn-ingest-label">Process Document</span>
+                            <span id="btn-ingest-spinner" class="spinner hidden"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════ Panel 2: Ingestion ═══ -->
+            <div class="panel" id="panel-ingest">
+                <div class="stage-result" id="stage-ingest-summary"></div>
+                <div class="grid-halves">
+                    <div class="card">
+                        <div class="card-hd">
+                            <h3>Vectorless Outline (JSON Tree)</h3>
+                            <p>Structural index used by the outline-reasoning retrieval path.</p>
+                        </div>
+                        <div class="card-bd no-pad">
+                            <pre class="code-block" id="outline-json">—</pre>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-hd">
+                            <h3>Document Contract</h3>
+                            <p>Full <code>Document</code> object emitted by Agent 1.</p>
+                        </div>
+                        <div class="card-bd no-pad">
+                            <pre class="code-block" id="doc-contract-json">—</pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-ft standalone">
+                    <button class="btn btn-secondary" data-nav="panel-upload">← Back</button>
+                    <button class="btn btn-primary" data-nav="panel-chunk">View Chunks →</button>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════ Panel 3: Chunking ═══ -->
+            <div class="panel" id="panel-chunk">
+                <div class="stage-result" id="stage-chunk-summary"></div>
+
+                <div class="card" style="margin-bottom:1.5rem;">
+                    <div class="card-hd">
+                        <h3>Validated Chunk Pool</h3>
+                        <p>Semantic chunks committed to the vector store after passing Agent 3 quality gates.</p>
+                    </div>
+                    <div class="card-bd">
+                        <div id="chunk-list" class="chunk-grid"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-hd">
+                        <h3>Chunk Validation Report (Agent 3)</h3>
+                    </div>
+                    <div class="card-bd no-pad">
+                        <pre class="code-block" id="chunk-val-json">—</pre>
+                    </div>
+                </div>
+
+                <div class="card-ft standalone">
+                    <button class="btn btn-secondary" data-nav="panel-ingest">← Back</button>
+                    <button class="btn btn-primary" data-nav="panel-retrieve">Proceed to Search →</button>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════ Panel 4: Hybrid Search ═══ -->
+            <div class="panel" id="panel-retrieve">
+                <div class="card" style="margin-bottom:1.5rem;">
+                    <div class="card-hd">
+                        <h3>Query the Pipeline</h3>
+                        <p>Runs Agent 4 (hybrid retrieval) → Agent 5 (context validator) → Agent 6 (synthesis).</p>
+                    </div>
+                    <div class="card-bd">
+                        <div class="search-row">
+                            <input type="text" class="text-input" id="query-input" placeholder="e.g. How is data encrypted at rest?">
+                            <button class="btn btn-primary" id="btn-ask">
+                                <span id="btn-ask-label">Run Search</span>
+                                <span id="btn-ask-spinner" class="spinner hidden"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-halves">
+                    <div class="card">
+                        <div class="card-hd">
+                            <h3><span class="tag tag-blue">Vector Path</span></h3>
+                            <p>MiniLM dense vector match from pgvector store.</p>
+                        </div>
+                        <div class="card-bd no-pad">
+                            <pre class="code-block" id="vector-results">Awaiting query…</pre>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-hd">
+                            <h3><span class="tag tag-purple">Vectorless Path</span></h3>
+                            <p>Structural outline reasoning over the JSON tree.</p>
+                        </div>
+                        <div class="card-bd no-pad">
+                            <pre class="code-block" id="struct-results">Awaiting query…</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:1.5rem;">
+                    <div class="card-hd">
+                        <h3>Agent 6 — Synthesized Answer</h3>
+                        <div id="val2-badge" class="badge badge-idle" style="margin-top:0.5rem;">WAITING</div>
+                    </div>
+                    <div class="card-bd">
+                        <div id="final-answer" class="answer-body"></div>
+                        <div id="citations-area" class="citations-area hidden"></div>
+                    </div>
+                </div>
+
+                <div class="card-ft standalone">
+                    <button class="btn btn-secondary" data-nav="panel-chunk">← Back</button>
+                </div>
+            </div>
+
+        </div><!-- /content-scroll -->
+    </div><!-- /content-area -->
+</div><!-- /layout -->
+
+<script src="script.js"></script>
+</body>
+</html>

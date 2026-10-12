@@ -1,0 +1,11 @@
+openai>=1.40.0
+sentence-transformers>=3.0.0
+torch>=2.4.0
+psycopg[binary]>=3.2.0
+pgvector>=0.3.0
+numpy>=1.26.0
+python-dotenv>=1.0.0
+fastapi>=0.110.0
+uvicorn>=0.28.0
+python-multipart>=0.0.9
+pymupdf>=1.24.0
